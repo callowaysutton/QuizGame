@@ -1,0 +1,474 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Example Question</title>
+
+  <!-- Tailwind CSS -->
+  <script src="https://cdn.tailwindcss.com"></script>
+
+  <!-- JQuery -->
+  <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+
+  <!-- GSAP Animation Libraries -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/animejs/2.0.2/anime.min.js"></script>
+
+  <!-- Font -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Bungee&display=swap" rel="stylesheet">
+
+  <!-- Custom CSS -->
+  <style>
+    html, body {
+      overflow-x: hidden;
+    }
+
+    .bungee-regular {
+      font-family: "Bungee", sans-serif;
+      font-style: light;
+    }
+
+    label {
+      display: block;
+      padding: 12px;
+      border-radius: 8px;
+      cursor: pointer;
+      transition: background-color 0.3s ease, color 0.3s ease;
+    }
+
+    label:hover {
+      background-color: #4a5568;
+      color: #fff;
+    }
+
+    .selected {
+      background-color: #2d3748;
+      color: #fff;
+    }
+
+    .popinText {
+      font-weight: 900;
+      font-size: 3.5em;
+    }
+
+    .popinText .letter {
+      display: inline-block;
+      line-height: 1em;
+    }
+
+    .actionText {
+      position: relative;
+      font-weight: 900;
+      font-size: 4.5em;
+    }
+
+    .actionText .letters {
+      position: absolute;
+      margin: auto;
+      left: 0;
+      top: 0.3em;
+      right: 0;
+      opacity: 0;
+    }
+
+    .word {
+      display: inline-block;
+      /* white-space: nowrap; */
+    }
+
+    .letter {
+      display: inline-block;
+    }
+
+    .progress-container {
+      position: relative;
+      width: 75%;
+      background-color: #2d3748;
+      /* bg-gray-800 */
+      height: 1.5rem;
+      /* Custom height for better visibility */
+      border-radius: 9999px;
+      /* rounded-full */
+      overflow: hidden;
+      /* To clip the inner bar */
+      margin-top: 1rem;
+      /* mt-4 */
+    }
+
+    .progress-bar {
+      background-color: #3182ce;
+      /* bg-blue-600 */
+      height: 100%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: white;
+      font-weight: bold;
+      width: 0%;
+      /* transition: width 0.4s ease; */
+      /* Smooth transition for width change */
+    }
+
+    .progress-text {
+      position: absolute;
+      width: 100%;
+      text-align: center;
+      left: 0;
+      top: 0;
+      height: 100%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+  </style>
+</head>
+
+<body class="bg-gray-900 text-white flex flex-col align-items-start items-center justify-center min-h-screen">
+  <div class="container mx-auto px-4">
+    <div class="flex items-center">
+      <h1 class="actionText">
+        <span class="letters letters-1">Ready</span>
+        <span class="letters letters-2">Set</span>
+        <span class="letters letters-3">Go!</span>
+      </h1>
+    </div>
+    <h1 id="intro-text" class="text-2xl font-bold mb-4 w-full bungee-regular popinText"></h1>
+
+    <!-- Hints box -->
+    <div id="hintBox" style="display: none;" class="bg-gray-800 p-4 rounded-lg mb-4 w-full" style="height:300px">
+    </div>
+
+    <form id="quiz-form" action="" method="post" class="w-full">
+    </form>
+
+    <!-- Progress Bar -->
+    <div id="progress-container" class="progress-container items-center justify-center w-full" style="display: none;">
+    </div>
+  </div>
+  <script>
+    document.addEventListener('DOMContentLoaded', (event) => {
+      const form = document.getElementById('quiz-form');
+      const options = form.querySelectorAll('input[type="radio"]');
+
+      options.forEach(option => {
+        option.addEventListener('change', () => {
+          // Make all options unselected
+          options.forEach(option => {
+            option.parentElement.classList.remove('selected');
+          });
+
+          // Make the selected option selected
+          option.parentElement.classList.add('selected');
+        });
+      });
+    });
+  </script>
+
+  <!-- Animation Logic -->
+  <script>
+    const introText = "What is the term for the philosophical idea that reality is fundamentally composed of individual, indivisible units, rather than being continuous?"
+    const explanation = "Monadology is a philosophical position that argues that reality is composed of individual, indivisible units, rather than being continuous. This idea has been influential in the development of modern philosophy, particularly in the work of Gottfried Wilhelm Leibniz."
+    const answersList = ['Holism', 'Dualism', 'Monadology', 'Nihilism'];
+    const hintsList = [
+      "This philosophical idea is all about the 'one', not the many.",
+      "It's a 'monad'-ous task to understand this concept, but it's a fundamental unit of reality!",
+      "Think about a single, solitary unit - a 'monad' is a single, indivisible thing."
+    ];
+    const correctAnswer = 'Monadology';
+
+    const introTextWrapper = document.getElementById('intro-text');
+    introTextWrapper.textContent = introText;
+
+    // Shuffle the answers list and put them in the form
+    const form = document.getElementById('quiz-form');
+    // Make sure the form is empty
+    form.innerHTML = '';
+    const shuffledAnswers = answersList.sort(() => Math.random() - 0.5);
+    shuffledAnswers.forEach(answer => {
+      const label = document.createElement('label');
+      label.classList.add('block', 'mb-2');
+      label.innerHTML = `<input type="radio" name="answer" value="${answer}" class="option mr-2 sr-only" style="opacity:0">${answer}`;
+      form.appendChild(label);
+    });
+
+    function calculateHeight(el) {
+      var height = 0;
+      let children = el.children;
+      for (var i = 0; i < children.length; i++) {
+        height += children[i].offsetHeight;
+      }
+      // Calculate its height when auto
+      el.style.height = 'auto';
+      // Get the height
+      height = el.offsetHeight;
+
+      // Get the padding
+      let padding = parseInt(window.getComputedStyle(el).paddingTop) + parseInt(window.getComputedStyle(el).paddingBottom);
+
+      // Add the padding to the height
+      height += padding;
+
+      // Set the height back to 0
+      el.style.height = '0px';
+
+      return height;
+    }
+
+    // Shuffle the hints list
+    const shuffledHints = hintsList.sort(() => Math.random() - 0.5);
+    // Get the hint box
+    const hintBox = document.getElementById('hintBox');
+    // Make sure the hint box is empty
+    hintBox.innerHTML = '';
+    // Make the unordered list
+    const ul = document.createElement('ul');
+    hintBox.appendChild(ul);
+    shuffledHints.forEach(hint => {
+      const li = document.createElement('li');
+      li.classList.add('mb-2');
+      li.textContent = hint;
+      ul.appendChild(li);
+    });
+    hintBox.style.display = 'flex';
+    hintBox.style.height = '0px';
+
+    // Add the progress bar
+    const progressBarContainer = document.getElementById('progress-container');
+    progressBarContainer.innerHTML = `<div id="progress-bar" class="progress-bar" style="width: 0;"></div><div id="progress-text" class="progress-text">0%</div>`;
+    progressBarContainer.style.opacity = 0;
+    progressBarContainer.style.display = 'block';
+    
+    // Wrap every letter in a span
+    var textWrapper = document.querySelector('.popinText');
+    // Wrap each word in a span and then each letter in a span
+    textWrapper.innerHTML = textWrapper.textContent.split(' ').map(word => {
+      return `<span class='word'>${[...word].map(letter => `<span class='letter'>${letter}</span>`).join('')}</span>`;
+    }).join(' ');
+    const labels = document.querySelectorAll('#quiz-form label');
+    var hints = hintBox.querySelectorAll('li');
+    const progressBar = document.getElementById('progress-bar');
+    const progressText = document.getElementById('progress-text');
+    const labelsToAnimate = Array.from(labels).filter(label => label.textContent !== correctAnswer);
+    const correctLabel = Array.from(labels).find(label => label.textContent === correctAnswer);
+
+    // Ensure the text wrapper is hidden
+    textWrapper.style.opacity = 0;
+
+    // Go through each of the labels and make sure their opacity is 0
+    labels.forEach(label => {
+      label.style.opacity = 0;
+      label.style.transform = 'translateY(20px)';
+    });
+
+    // Set the hint box to have an opacity of 0 and a height of 0
+    hintBox.style.opacity = 0;
+
+    // Set the hints to have an opacity of 0
+    hints.forEach(hint => {
+      hint.style.opacity = 0;
+    });
+
+    // Set the progress bar to have a width of 0 and be transparent
+    progressBar.style.width = 0;
+    progressBarContainer.style.opacity = 0;
+
+    function updateProgress(percentage) {
+      progressText.textContent = 1000 - Math.round(percentage * 10);
+    }
+
+    var actionText = {};
+    actionText.opacityIn = [0, 1];
+    actionText.scaleIn = [0.2, 1];
+    actionText.scaleOut = 3;
+    actionText.durationIn = 400;
+    actionText.durationOut = 300;
+    actionText.delay = 250;
+
+    textWrapper.style.opacity = 1;
+
+    anime.timeline({ loop: false })
+      .add({
+        targets: hintBox,
+        opacity: [0, 1],
+        easing: 'easeOutExpo',
+        duration: 200,
+        delay: 10000
+      })
+      .add({
+        targets: hintBox,
+        height: calculateHeight(hintBox) + 'px',
+        easing: 'easeOutExpo',
+        duration: 200
+      })
+      .add({
+        targets: hints,
+        opacity: [0, 1],
+        easing: 'easeOutExpo',
+        duration: 1000,
+        delay: (el, i) => 5000 * i,
+      })
+      .add({
+        targets: hints,
+        opacity: [1, 0],
+        easing: 'easeOutExpo',
+        duration: 1000,
+        delay: 5000,
+        complete: function () {
+          hintBox.innerHTML = `<ul><li class="mb-2" style="opacity:0;">${explanation}</li><ul>`;
+          hints = hintBox.querySelectorAll('li');
+          anime.timeline({ loop: false })
+            .add({
+              targets: hints,
+              opacity: [0, 1],
+              easing: 'easeOutExpo',
+              duration: 1000
+            })
+            .add({
+              targets: labels,
+              easing: 'easeOutExpo',
+              duration: 1000,
+              delay: 1000,
+              complete: function () {
+                // Remove the selected class from all labels
+                labels.forEach(label => {
+                  label.classList.remove('selected');
+                });
+                // Select the correct label
+                correctLabel.classList.add('selected');
+              }
+            })
+        }
+      })
+
+    anime.timeline({ loop: false })
+      .add({
+        targets: '.actionText .letters-1',
+        opacity: actionText.opacityIn,
+        scale: actionText.scaleIn,
+        duration: actionText.durationIn
+      })
+      .add({
+        targets: '.actionText .letters-1',
+        opacity: 0,
+        scale: actionText.scaleOut,
+        duration: actionText.durationOut,
+        easing: "easeInExpo",
+        delay: actionText.delay
+      })
+      .add({
+        targets: '.actionText .letters-2',
+        opacity: actionText.opacityIn,
+        scale: actionText.scaleIn,
+        duration: actionText.durationIn
+      })
+      .add({
+        targets: '.actionText .letters-2',
+        opacity: 0,
+        scale: actionText.scaleOut,
+        duration: actionText.durationOut,
+        easing: "easeInExpo",
+        delay: actionText.delay
+      })
+      .add({
+        targets: '.actionText .letters-3',
+        opacity: actionText.opacityIn,
+        scale: actionText.scaleIn,
+        duration: actionText.durationIn
+      })
+      .add({
+        targets: '.actionText .letters-3',
+        opacity: 0,
+        scale: actionText.scaleOut,
+        duration: actionText.durationOut,
+        easing: "easeInExpo",
+        delay: actionText.delay
+      })
+      .add({
+        targets: '.actionText',
+        opacity: 0,
+        duration: 500,
+      })
+      .add({
+        targets: '.popinText .letter',
+        rotateY: [-90, 0],
+        duration: 1300,
+        delay: (el, i) => 5 * i
+      })
+      .add({
+        targets: labels,
+        opacity: [0, 1],
+        translateY: [20, 0],
+        easing: 'easeOutExpo',
+        duration: 800,
+        delay: (el, i) => 500 * i
+      })
+      .add({
+        targets: progressBarContainer,
+        opacity: [0, 1],
+        easing: 'easeOutExpo',
+        duration: 1000,
+        delay: 500
+      })
+      .add({
+        targets: progressBar,
+        width: ['0%', '100%'],
+        easing: 'linear',
+        duration: 15000,
+        delay: 0,
+        
+        update: function (anim) {
+          // Get the progress bar width as a percentage
+          updateProgress(parseFloat(progressBar.style.width));
+        }
+      })
+      .add({
+        targets: progressBarContainer,
+        opacity: [1, 0],
+        easing: 'easeOutExpo',
+        duration: 200,
+        delay: 500
+      })
+      .add({
+        targets: labelsToAnimate,
+        opacity: [1, 0],
+        translateY: [0, 20],
+        easing: 'easeOutExpo',
+        duration: 800,
+        delay: (el, i) => 500 * i,
+        // Reverse the order of the labels
+        direction: 'reverse',
+      })
+      .add({
+        targets: labelsToAnimate,
+        delay: 1000,
+      })
+      .add({
+        targets: correctLabel,
+        opacity: [1, 0],
+        easing: 'easeOutExpo',
+        duration: 800,
+        delay: 4000,
+      })
+      .add({
+        targets: hintBox,
+        opacity: [1, 0],
+        easing: 'easeOutExpo',
+        duration: 1000,
+        delay: 0
+      })
+      // Fade out the text wrapper
+      .add({
+        targets: textWrapper,
+        opacity: [1, 0],
+        easing: 'easeOutExpo',
+        duration: 1000,
+        delay: 0
+      })
+  </script>
+
+</body>
+
+</html>
